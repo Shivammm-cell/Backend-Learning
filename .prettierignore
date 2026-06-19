@@ -1,0 +1,8 @@
+# IDE and environment files
+.vscode/
+*.env
+.env.*
+
+# Dependency and build directories
+node_modules/
+dist/
