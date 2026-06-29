@@ -4,11 +4,27 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const generateAccessAndRefreshTokens = async (UserId) => {
+    try {
+        const user = await User.findById(UserId);
+        const accessToken = await user.generateAccessToken();
+        const refreshToken = await user.generateRefreshToken();
 
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false })
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        throw new ApiError(500, "something went wrong while generating the refresh and access token")
+    }
+}
+
+
+//RegisterUser
 const registerUser = asyncHandler(async (req, res) => {
     //today work 
     const { fullName, username, email, password } = req.body;
-    
+
     if (
         [fullName, email, password, username].some((field) =>
             field?.trim() === ""
@@ -66,5 +82,39 @@ const registerUser = asyncHandler(async (req, res) => {
     )
 })
 
+//LoginUser
+const LoginUser = asyncHandler(async (req, res) => {
+    //taking username,email,password from user through req.body 
+    const { username, email, password } = req.body;
 
-export { registerUser }
+    //now check userhad give username or email 
+    if (!(username || email) || !password) {
+        throw new ApiError(400, "username or email and password are required");
+    }
+
+    //if user provided neccessary info then proceeds to finding the user from DB
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+    });
+
+    //now whther user exist or not in our DB check it 
+    if (!user) {
+        throw new ApiError(404, "User does not exist");
+    }
+
+    //After checking user exist in our db , checks the password of user enter 
+    const isPasswordValid = await user.isPasswordCorrect(password);
+
+    //now check whether password is correct or not 
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Inavalid user credentials")
+    }
+
+    //generating refreshToken and Accesstoken
+    const { accessToken, refreshToken } =
+        await generateAccessAndRefreshTokens(user._id);
+
+
+})
+
+export { registerUser, LoginUser }
