@@ -115,6 +115,30 @@ const LoginUser = asyncHandler(async (req, res) => {
         await generateAccessAndRefreshTokens(user._id);
 
 
+    //Fetch the latest user data from the database and exclude sensitive fields before sending the response.
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    //sending cookies 
+    const options = {
+        httpOnly : true,
+        secure: true,
+    }
+        
+
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToken",refreshToken,options)
+    .json(
+        new ApiResponse(200,
+            {
+                user:loggedInUser , accessToken , refreshToken
+            },
+            "User Logged in Succesfully"
+        )
+    )
+
+
 })
 
 export { registerUser, LoginUser }
