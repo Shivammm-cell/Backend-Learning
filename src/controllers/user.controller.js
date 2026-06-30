@@ -22,7 +22,7 @@ const generateAccessAndRefreshTokens = async (UserId) => {
 
 //RegisterUser
 const registerUser = asyncHandler(async (req, res) => {
-    //today work 
+     
     const { fullName, username, email, password } = req.body;
 
     if (
@@ -116,7 +116,7 @@ const LoginUser = asyncHandler(async (req, res) => {
 
 
     //Fetch the latest user data from the database and exclude sensitive fields before sending the response.
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+    const loggedOutUser = await User.findById(user._id).select("-password -refreshToken");
 
     //sending cookies 
     const options = {
@@ -137,8 +137,38 @@ const LoginUser = asyncHandler(async (req, res) => {
             "User Logged in Succesfully"
         )
     )
+  
+    //logOutUser
+  const loggedOutUser = asyncHandler(async(req,res)=>{
 
-
+  })
+   
 })
 
-export { registerUser, LoginUser }
+ //logOutUser
+ const loggedOutUser = asyncHandler(async(req,res)=>{
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{
+                refreshToken : undefined
+            }
+        },
+        {
+            new:true
+        }
+     )
+ const options = {
+        httpOnly : true,
+        secure: true,
+    }
+  
+    return res
+    .status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(new ApiResponse(200,{}, "User logged out Succesfully"))
+})
+
+
+export { registerUser, LoginUser, loggedOutUser }
