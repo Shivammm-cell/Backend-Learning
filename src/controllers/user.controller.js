@@ -213,5 +213,80 @@ const refressAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
+// Change current user's password
+const changeCurrentPassword = asyncHandler(async(req,res)=>{
+    // Get passwords from request body
+    const {oldPassword , newPassword , confirmPassword} = req.body;
 
-export { registerUser, LoginUser, loggedOutUser, refressAccessToken }
+     // Check if new password and confirm password match
+    if(newPassword!==confirmPassword){
+        throw new ApiError(400, "Confirm password do not match with newPassword")
+    }
+      
+     // Fetch current user from database
+      const user = await User.findById(req.user?._id);
+
+        // Verify old password
+      const isPasswordCorrect =  await user.isPasswordCorrect(oldPassword);
+      
+      if(!isPasswordCorrect){
+        throw new ApiError(400, "Invalid old password")
+      }
+
+
+        // Update password (will be hashed automatically by pre("save") middleware)
+      user.password = newPassword ; 
+
+       // Save updated user
+      await user.save({validateBeforeSave : false})
+
+       // Send success response
+      return res.status(200)
+      .json(
+        new ApiResponse(200 , {} , "Password changed Succesfully")
+      )
+})
+
+//currentUser
+const getCurrentUser = asyncHandler(async(req,res)=>{
+    return res
+    .status(200)
+    .json(
+        200,req.user , "Current user fetched succesfully"
+    )
+})
+
+//updating account details
+const updateUserDetails = asyncHandler(async(req,res)=>{
+    const{fullName , email} = req.body;
+
+    if(!fullName || !email){
+        throw new ApiError(400 , "All fields are required")
+    }
+
+    const user =await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set :{
+                fullName,
+                email
+            }
+        },
+        {new : true}
+    ).select("-password")
+  
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200 , user , "Account details updated succesfully")
+    )
+})
+
+
+export { registerUser, 
+    LoginUser, 
+    loggedOutUser, 
+    refressAccessToken, 
+    changeCurrentPassword, 
+    getCurrentUser,
+updateUserDetails}
